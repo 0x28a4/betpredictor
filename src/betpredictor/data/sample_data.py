@@ -95,3 +95,48 @@ FIXTURES_2026_09_05: List[Tuple[str, str, str]] = [
 def default_strength(league: str) -> Dict[str, object]:
     """Fallback attributes for an unknown team (league-average everything)."""
     return {"attack": 1.0, "defense": 1.0, "form": 1.4, "league": league}
+
+
+# Map the short/alternate names live providers (ESPN in particular) use onto the
+# canonical names in TEAM_STRENGTHS, so live fixtures still hit seed strengths.
+TEAM_ALIASES: Dict[str, str] = {
+    "Bournemouth": "AFC Bournemouth",
+    "Brighton": "Brighton & Hove Albion",
+    "Brighton & Hove Albion FC": "Brighton & Hove Albion",
+    "Tottenham": "Tottenham Hotspur",
+    "Spurs": "Tottenham Hotspur",
+    "Man City": "Manchester City",
+    "Wolves": "Wolverhampton Wanderers",
+    "Wolverhampton": "Wolverhampton Wanderers",
+    "Nott'm Forest": "Nottingham Forest",
+    "Sheffield Weds": "Sheffield Wednesday",
+    "Sheffield Wed": "Sheffield Wednesday",
+    "Preston": "Preston North End",
+    "Blackburn": "Blackburn Rovers",
+    "Bolton": "Bolton Wanderers",
+    "Wigan": "Wigan Athletic",
+    "Stockport": "Stockport County",
+    "Huddersfield": "Huddersfield Town",
+    "Lincoln": "Lincoln City",
+    "Peterborough": "Peterborough United",
+    "Newcastle": "Newcastle United",
+    "Leeds": "Leeds United",
+    "Birmingham": "Birmingham City",
+    "Bristol City FC": "Bristol City",
+    "Coventry": "Coventry City",
+    "Stoke": "Stoke City",
+    "Swansea": "Swansea City",
+}
+
+
+def normalize_team_name(name: str) -> str:
+    """Canonicalise a team name; trims a trailing ' FC' and applies aliases."""
+    if not name:
+        return name
+    n = name.strip()
+    if n in TEAM_ALIASES:
+        return TEAM_ALIASES[n]
+    if n.endswith(" FC"):
+        base = n[:-3].strip()
+        return TEAM_ALIASES.get(base, base)
+    return n

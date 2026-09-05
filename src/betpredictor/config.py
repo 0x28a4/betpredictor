@@ -17,12 +17,15 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DATA_DIR = PROJECT_ROOT / "data"
 DB_PATH = DATA_DIR / "betpredictor.db"
 
-# The three English leagues this project targets, with their
-# football-data.org competition codes for live fetching.
+# The three English leagues this project targets, with the codes each data
+# source uses:
+#   - ``espn_slug``: ESPN's hidden JSON API (free, no key, covers all three).
+#   - ``fd_code``  : football-data.org competition code (keyed; free tier is
+#                    PL + Championship only, so League One is None there).
 LEAGUES = {
-    "premier-league": {"name": "Premier League", "fd_code": "PL", "tier": 1},
-    "championship": {"name": "EFL Championship", "fd_code": "ELC", "tier": 2},
-    "league-one": {"name": "EFL League One", "fd_code": None, "tier": 3},
+    "premier-league": {"name": "Premier League", "fd_code": "PL", "espn_slug": "eng.1", "tier": 1},
+    "championship": {"name": "EFL Championship", "fd_code": "ELC", "espn_slug": "eng.2", "tier": 2},
+    "league-one": {"name": "EFL League One", "fd_code": None, "espn_slug": "eng.3", "tier": 3},
 }
 
 

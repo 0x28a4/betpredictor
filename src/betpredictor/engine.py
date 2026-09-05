@@ -20,6 +20,7 @@ from .data.sample_data import (
     LEAGUE_BASE_GOALS,
     TEAM_STRENGTHS,
     default_strength,
+    normalize_team_name,
 )
 from .markets import Markets, derive_markets
 from .models.elo import EloRatings
@@ -87,7 +88,10 @@ class PredictionEngine:
 
     # --- team attributes -------------------------------------------------
     def _attrs(self, team: str, league: str) -> Dict[str, object]:
-        return self.strengths.get(team, default_strength(league))
+        if team in self.strengths:
+            return self.strengths[team]
+        canonical = normalize_team_name(team)
+        return self.strengths.get(canonical, default_strength(league))
 
     # --- expected goals --------------------------------------------------
     def expected_goals(self, league: str, home: str, away: str) -> Tuple[float, float]:

@@ -5,7 +5,8 @@ Examples
     python -m betpredictor.cli screen                 # today's sample slate
     python -m betpredictor.cli screen --threshold 0.6
     python -m betpredictor.cli predict "Man City" "Coventry City" --league premier-league
-    python -m betpredictor.cli fetch --date 2026-09-05    # live (needs token)
+    python -m betpredictor.cli fetch --date 2026-09-05    # real fixtures (ESPN, no key)
+    python -m betpredictor.cli calibrate --start 2026-08-08 --end 2026-09-01
     python -m betpredictor.cli result 2026-09-05 "Burnley" "Bristol City" 2 1
     python -m betpredictor.cli evaluate
     python -m betpredictor.cli retrain
@@ -102,18 +103,69 @@ def cmd_predict(args: argparse.Namespace) -> int:
 def cmd_fetch(args: argparse.Namespace) -> int:
     from .data.sources import fetch_all_fixtures, DataUnavailable
     try:
-        fixtures = fetch_all_fixtures(args.date)
+        fixtures = fetch_all_fixtures(args.date, provider=args.provider)
     except DataUnavailable as exc:
         print(f"Live fetch unavailable: {exc}", file=sys.stderr)
+        print("Tip: ESPN (default) needs no key. Check network access and the date.",
+              file=sys.stderr)
         return 2
     if not fixtures:
-        print("No fixtures returned (check the date, token, or league coverage).")
+        print(f"No fixtures found for {args.date} in these leagues (rest day?).")
         return 0
+    srcs = sorted({f.source for f in fixtures})
+    print(f"Fetched {len(fixtures)} fixture(s) for {args.date} via {', '.join(srcs)}.")
     engine = _get_engine()
     slate: List[Tuple[str, str, str]] = [(f.league, f.home, f.away) for f in fixtures]
     picks = engine.screen(slate, threshold=args.threshold)
     _print_predictions(picks, f"Live Draw-or-Over-2.5 screen for {args.date}")
+    print(f"\n{len(picks)} of {len(fixtures)} fixture(s) clear the threshold.")
     print(DISCLAIMER)
+    return 0
+
+
+def _date_range(start: str, end: str):
+    from datetime import date, timedelta
+    d0 = date.fromisoformat(start)
+    d1 = date.fromisoformat(end)
+    step = timedelta(days=1)
+    cur = d0
+    while cur <= d1:
+        yield cur.isoformat()
+        cur += step
+
+
+def cmd_calibrate(args: argparse.Namespace) -> int:
+    """Estimate team strengths from finished matches over a date range."""
+    from .data.sources import fetch_all_fixtures, DataUnavailable
+    from .data.calibrate import estimate_strengths
+
+    finished = []
+    n_days = 0
+    for day in _date_range(args.start, args.end):
+        n_days += 1
+        try:
+            for f in fetch_all_fixtures(day, provider=args.provider):
+                if f.home_goals is not None and f.away_goals is not None:
+                    finished.append(f)
+        except DataUnavailable:
+            continue
+    if not finished:
+        print("No finished matches fetched for that range — nothing to calibrate.",
+              file=sys.stderr)
+        return 2
+
+    strengths = estimate_strengths(finished)
+    engine = _get_engine()
+    loop = FeedbackLoop(engine)
+    loop.save_strengths(strengths)
+    print(f"Calibrated {len(strengths)} teams from {len(finished)} finished "
+          f"matches over {n_days} day(s). Strengths saved and will be used for "
+          f"future predictions.")
+    # Show a few extremes as a sanity check.
+    ranked = sorted(strengths.items(), key=lambda kv: kv[1]["attack"], reverse=True)
+    print("\nTop attacks:")
+    for team, s in ranked[:5]:
+        print(f"  {team:<28} attack {s['attack']:.2f}  defense {s['defense']:.2f}  ({s['games']} games)")
     return 0
 
 
@@ -178,10 +230,17 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--odds", type=float, default=None, help="bookmaker decimal odds for value calc")
     p.set_defaults(func=cmd_predict)
 
-    p = sub.add_parser("fetch", help="fetch live fixtures and screen (needs API token)")
+    p = sub.add_parser("fetch", help="fetch live fixtures and screen (ESPN, no key)")
     p.add_argument("--date", required=True, help="YYYY-MM-DD")
     p.add_argument("--threshold", type=float, default=0.75)
+    p.add_argument("--provider", default="auto", choices=["auto", "espn", "football-data"])
     p.set_defaults(func=cmd_fetch)
+
+    p = sub.add_parser("calibrate", help="estimate team strengths from finished results")
+    p.add_argument("--start", required=True, help="YYYY-MM-DD (inclusive)")
+    p.add_argument("--end", required=True, help="YYYY-MM-DD (inclusive)")
+    p.add_argument("--provider", default="auto", choices=["auto", "espn", "football-data"])
+    p.set_defaults(func=cmd_calibrate)
 
     p = sub.add_parser("result", help="record a realised result (feedback loop)")
     p.add_argument("date")

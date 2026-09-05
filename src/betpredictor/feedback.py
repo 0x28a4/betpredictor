@@ -54,6 +54,7 @@ class FeedbackLoop:
     ELO_STATE_KEY = "elo_ratings"
     ML_STATE_KEY = "ml_blender"
     WEIGHT_STATE_KEY = "ml_weight"
+    STRENGTHS_STATE_KEY = "team_strengths"
 
     def __init__(self, engine: PredictionEngine, storage: Optional[Storage] = None):
         self.engine = engine
@@ -73,6 +74,15 @@ class FeedbackLoop:
             # ModelConfig is frozen; rebuild with the tuned weight.
             from dataclasses import replace
             self.engine.config = replace(self.engine.config, ml_weight=float(w))
+        strengths = self.storage.get_state(self.STRENGTHS_STATE_KEY)
+        if strengths:
+            # Calibrated strengths override the seed priors for known teams.
+            self.engine.strengths.update(json.loads(strengths))
+
+    def save_strengths(self, strengths: Dict[str, Dict[str, object]]) -> None:
+        """Persist calibrated team strengths and apply them to the engine."""
+        self.engine.strengths.update(strengths)
+        self.storage.set_state(self.STRENGTHS_STATE_KEY, json.dumps(strengths))
 
     def _persist_elo(self) -> None:
         self.storage.set_state(self.ELO_STATE_KEY, json.dumps(self.engine.elo.as_dict()))

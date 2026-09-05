@@ -100,20 +100,40 @@ fixture predictor with value/edge, a live performance panel, and a feedback
 form for reporting real scores and rating picks — all wired to the learning
 loop.
 
-## Live data (real fixtures)
+## Live data (real fixtures) — no API key needed
 
-The offline dataset is for demos. For **real** predictions, plug in a data
-provider:
+The offline dataset is only for demos. For **real** fixtures the engine uses
+**ESPN's public JSON API by default — no key, and it covers all three target
+leagues** (`eng.1` Premier League, `eng.2` Championship, `eng.3` League One):
 
 ```bash
-export FOOTBALL_DATA_TOKEN=your_free_key   # https://www.football-data.org/
+# Real fixtures for a date, screened for Draw-or-Over-2.5 (no key required)
 PYTHONPATH=src python -m betpredictor.cli fetch --date 2026-09-05
 ```
 
-football-data.org's free tier covers the **Premier League** and
-**Championship**. **League One** is not on the free tier — add an
-[API-Football](https://www.api-football.com/) key
-(`export API_FOOTBALL_KEY=...`) and extend `data/sources.py`.
+Optionally add football-data.org for higher-quality data on PL + Championship;
+when a token is present it's preferred automatically for those leagues:
+
+```bash
+export FOOTBALL_DATA_TOKEN=your_free_key   # https://www.football-data.org/
+PYTHONPATH=src python -m betpredictor.cli fetch --date 2026-09-05 --provider auto
+```
+
+Providers live in `data/sources.py` behind one `Fixture` shape; the JSON
+parsers are pure functions with unit tests, so provider changes never touch the
+engine. (Note: the parser is exercised by tests offline; a sandbox with locked
+egress will 403 on the live call — run it where outbound HTTPS is allowed.)
+
+### Calibrate strengths from real history
+
+Instead of the seed priors, estimate each team's attack/defence from **actual
+finished results** over a date range (Dixon-Coles strengths with shrinkage).
+The calibrated strengths are saved and used for all future predictions:
+
+```bash
+PYTHONPATH=src python -m betpredictor.cli calibrate --start 2026-08-08 --end 2026-09-01
+PYTHONPATH=src python -m betpredictor.cli fetch --date 2026-09-05   # now data-driven
+```
 
 ## Feedback loop in practice
 
@@ -157,8 +177,9 @@ src/betpredictor/
     elo.py             results-driven Elo ratings
     ml.py              from-scratch logistic-regression blender
   data/
-    sources.py         football-data.org live fetch (optional)
-    sample_data.py     offline strengths + illustrative fixtures
+    sources.py         ESPN (no-key) + football-data.org live fetch
+    calibrate.py       estimate team strengths from finished results
+    sample_data.py     offline strengths, fixtures, name normalisation
 web/                   FastAPI app + single-page UI
 scripts/demo_backtest.py   simulated backtest to seed the loop
 tests/                 unittest suite
@@ -167,8 +188,9 @@ tests/                 unittest suite
 ## Honesty & limitations
 
 - The bundled team strengths and the 5 Sep 2026 fixture list are **illustrative
-  priors**, not verified live data — they make the demo deterministic. Use the
-  live fetch for real predictions.
+  priors**, not verified live data — they make the demo deterministic. Use
+  `fetch` (real fixtures via ESPN) and `calibrate` (real strengths) for genuine
+  predictions.
 - No model beats the closing line reliably. Treat outputs as **one input** to
   your own judgement, compare against real market odds (the value/edge tool
   helps), and never chase losses.
