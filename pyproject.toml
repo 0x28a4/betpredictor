@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "betpredictor"
+version = "0.1.0"
+description = "AI-driven football match prediction focused on the Draw-or-Over-2.5 market"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+# Core has ZERO runtime dependencies. Optional extras below.
+dependencies = []
+
+[project.optional-dependencies]
+web = ["fastapi>=0.110", "uvicorn[standard]>=0.29"]
+live = ["requests>=2.31"]
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+betpredictor = "betpredictor.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+betpredictor = ["py.typed"]

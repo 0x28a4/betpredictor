@@ -1,0 +1,12 @@
+# Core model + engine + feedback loop: ZERO third-party dependencies (Python 3.9+ stdlib only).
+# The packages below are only needed for the optional web UI and live-data fetching.
+
+# --- Web interface (optional) ---
+fastapi>=0.110
+uvicorn[standard]>=0.29
+
+# --- Live data fetching (optional) ---
+requests>=2.31
+
+# --- Development / tests (optional) ---
+pytest>=8.0
