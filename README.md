@@ -90,15 +90,24 @@ PYTHONPATH=src python -m betpredictor.cli evaluate --odds 1.30
 
 ## Web UI
 
+Two front-ends ship with the project:
+
+**1. Standalone page (zero setup).** `web/artifact/index.html` is a single,
+self-contained page that runs the whole Dixon-Coles engine in the browser with
+today's slate loaded in — league filters, a probability slider, per-fixture
+market breakdowns, a "match lab" custom predictor with value/edge, and a
+feedback note pad (saved to `localStorage`). Just open the file, or view the
+hosted copy:
+<https://claude.ai/code/artifact/72ae1294-9ad1-405e-8ef6-c2f10e75e870>
+
+**2. Full app (with the learning loop).** The FastAPI backend serves the
+ranked slate, live fetch, a performance panel and a feedback form wired to the
+SQLite feedback loop:
+
 ```bash
 PYTHONPATH=src uvicorn web.app:app --reload
 # open http://127.0.0.1:8000
 ```
-
-The page shows the ranked slate (recommended picks highlighted), a custom
-fixture predictor with value/edge, a live performance panel, and a feedback
-form for reporting real scores and rating picks — all wired to the learning
-loop.
 
 ## Live data (real fixtures) — no API key needed
 

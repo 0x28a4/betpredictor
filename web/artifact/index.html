@@ -1,0 +1,469 @@
+<title>Draw or Over 2.5 — Today</title>
+<meta name="description" content="Interactive Dixon-Coles model screening today's English league fixtures for the Draw-or-Over-2.5 market.">
+<style>
+  :root{
+    --bg:#eef1f4; --surface:#ffffff; --surface-2:#f5f7f9; --line:#d9dfe6;
+    --ink:#141b22; --ink-soft:#4a5763; --ink-faint:#7b8794;
+    --accent:#0f9d58;            /* pitch green, used sparingly */
+    --accent-ink:#0a6e3d;
+    --bar-track:#e4e9ee;
+    --good:#0f9d58; --warn:#c8811a; --weak:#b23b3b;
+    --shadow:0 1px 2px rgba(20,27,34,.06), 0 6px 20px rgba(20,27,34,.05);
+    --pitch:#0f9d58;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0e1317; --surface:#161d23; --surface-2:#1b232a; --line:#2a343d;
+      --ink:#eaf0f5; --ink-soft:#a9b6c1; --ink-faint:#76828d;
+      --accent:#2fbd77; --accent-ink:#8ee6b6;
+      --bar-track:#232d35;
+      --good:#2fbd77; --warn:#e0a94a; --weak:#e0736f;
+      --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 28px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0e1317; --surface:#161d23; --surface-2:#1b232a; --line:#2a343d;
+    --ink:#eaf0f5; --ink-soft:#a9b6c1; --ink-faint:#76828d;
+    --accent:#2fbd77; --accent-ink:#8ee6b6;
+    --bar-track:#232d35;
+    --good:#2fbd77; --warn:#e0a94a; --weak:#e0736f;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 28px rgba(0,0,0,.35);
+  }
+
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:"IBM Plex Sans",system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    line-height:1.5;
+  }
+  .num{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace; font-variant-numeric:tabular-nums}
+  .wrap{max-width:1000px; margin:0 auto; padding:0 20px}
+
+  /* header */
+  header{
+    background:
+      linear-gradient(180deg,var(--surface),var(--surface));
+    border-bottom:1px solid var(--line);
+  }
+  .head-inner{display:flex; flex-wrap:wrap; align-items:flex-end; gap:14px 24px; padding:26px 0 20px}
+  .brand{display:flex; align-items:center; gap:12px}
+  .crest{width:34px;height:34px;flex:none;border-radius:8px;background:var(--accent);
+    display:grid;place-items:center;color:#fff;font-weight:800;font-family:"Archivo",sans-serif}
+  h1{font-family:"Archivo",system-ui,sans-serif; font-weight:800; letter-spacing:-.02em;
+    font-size:clamp(22px,3.4vw,30px); margin:0; text-wrap:balance}
+  .kicker{font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--accent-ink); font-weight:700; margin:0 0 2px}
+  .datechip{margin-left:auto; text-align:right; color:var(--ink-soft); font-size:13px}
+  .datechip b{color:var(--ink); font-family:"Archivo",sans-serif}
+
+  /* responsible gambling */
+  .rg{background:var(--surface-2); border-top:1px solid var(--line); border-bottom:1px solid var(--line)}
+  .rg p{margin:0; padding:9px 0; font-size:12.5px; color:var(--ink-soft)}
+  .rg b{color:var(--ink)}
+
+  main{padding:22px 0 60px}
+
+  /* summary tiles */
+  .tiles{display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:20px}
+  @media(max-width:640px){.tiles{grid-template-columns:repeat(2,1fr)}}
+  .tile{background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:14px 16px; box-shadow:var(--shadow)}
+  .tile .lab{font-size:11.5px; text-transform:uppercase; letter-spacing:.08em; color:var(--ink-faint); font-weight:600}
+  .tile .val{font-family:"Archivo",sans-serif; font-weight:800; font-size:26px; margin-top:4px; letter-spacing:-.01em}
+  .tile .sub{font-size:12px; color:var(--ink-soft)}
+
+  /* controls */
+  .controls{display:flex; flex-wrap:wrap; align-items:center; gap:12px 18px; margin:0 0 14px}
+  .chips{display:flex; gap:6px; flex-wrap:wrap}
+  .chip{border:1px solid var(--line); background:var(--surface); color:var(--ink-soft);
+    padding:6px 12px; border-radius:20px; font-size:13px; cursor:pointer; font-weight:600}
+  .chip[aria-pressed="true"]{background:var(--accent); border-color:var(--accent); color:#fff}
+  .slider{display:flex; align-items:center; gap:9px; margin-left:auto; font-size:13px; color:var(--ink-soft)}
+  .slider output{font-weight:700; color:var(--ink); min-width:38px; text-align:right}
+  input[type=range]{accent-color:var(--accent)}
+
+  /* fixture list */
+  .list{display:flex; flex-direction:column; gap:8px}
+  .fx{background:var(--surface); border:1px solid var(--line); border-radius:12px; box-shadow:var(--shadow); overflow:hidden}
+  .fx.pick{border-color:color-mix(in srgb,var(--accent) 55%,var(--line))}
+  .fx-row{display:grid; grid-template-columns:2.4fr 1.5fr auto; align-items:center; gap:14px; padding:13px 16px; cursor:pointer}
+  @media(max-width:640px){.fx-row{grid-template-columns:1fr auto; gap:8px}}
+  .teams{min-width:0}
+  .teams .match{font-weight:600; font-size:15px; letter-spacing:-.01em}
+  .teams .meta{font-size:11.5px; color:var(--ink-faint); margin-top:2px; display:flex; gap:8px; align-items:center}
+  .lgtag{font-weight:700; color:var(--ink-soft)}
+  .barwrap{display:flex; align-items:center; gap:10px}
+  @media(max-width:640px){.barwrap{display:none}}
+  .bar{position:relative; flex:1; height:9px; background:var(--bar-track); border-radius:6px; overflow:hidden}
+  .bar > i{position:absolute; inset:0 auto 0 0; background:var(--accent); border-radius:6px}
+  .prob{display:flex; flex-direction:column; align-items:flex-end; min-width:74px}
+  .prob .p{font-family:"Archivo",sans-serif; font-weight:800; font-size:19px; letter-spacing:-.01em}
+  .prob .conf{font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.05em}
+  .conf.High{color:var(--good)} .conf.Medium{color:var(--warn)} .conf.Lean{color:var(--ink-faint)}
+  .caret{color:var(--ink-faint); transition:transform .18s ease; font-size:13px}
+  .fx.open .caret{transform:rotate(90deg)}
+
+  /* detail */
+  .detail{border-top:1px dashed var(--line); padding:0 16px; max-height:0; overflow:hidden; transition:max-height .22s ease}
+  .fx.open .detail{max-height:340px}
+  .detail-inner{padding:14px 0 16px; display:grid; grid-template-columns:1fr 1fr; gap:16px}
+  @media(max-width:640px){.detail-inner{grid-template-columns:1fr}}
+  .mk{display:flex; flex-direction:column; gap:6px}
+  .mk .r{display:flex; justify-content:space-between; font-size:13px; border-bottom:1px solid var(--line); padding-bottom:5px}
+  .mk .r span:first-child{color:var(--ink-soft)}
+  .lose{background:var(--surface-2); border-radius:9px; padding:11px 12px; font-size:12.5px; color:var(--ink-soft)}
+  .lose b{color:var(--ink)}
+  .scoreline{display:inline-block; background:var(--surface); border:1px solid var(--line); border-radius:6px;
+    padding:2px 7px; margin:3px 4px 0 0; font-weight:600}
+  .fversion{font-size:11px;color:var(--ink-faint)}
+
+  h2{font-family:"Archivo",sans-serif; font-weight:800; font-size:18px; letter-spacing:-.01em; margin:34px 0 12px}
+
+  /* match lab */
+  .lab{background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:18px; box-shadow:var(--shadow)}
+  .lab-grid{display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end}
+  .field{display:flex; flex-direction:column; gap:5px}
+  .field label{font-size:11.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-faint); font-weight:600}
+  select,input[type=number]{font:inherit; font-size:14px; padding:9px 11px; border:1px solid var(--line);
+    background:var(--surface-2); color:var(--ink); border-radius:9px}
+  select{min-width:170px}
+  input[type=number]{width:110px}
+  .go{background:var(--accent); color:#fff; border:none; font-weight:700; padding:10px 18px; border-radius:9px; cursor:pointer; font-size:14px}
+  .go:hover{background:var(--accent-ink)}
+  .lab-out{margin-top:16px; display:none; gap:14px; flex-wrap:wrap; align-items:stretch}
+  .lab-out.show{display:flex}
+  .lab-card{flex:1; min-width:150px; background:var(--surface-2); border:1px solid var(--line); border-radius:11px; padding:13px 15px}
+  .lab-card .lab-lab{font-size:11px; text-transform:uppercase; letter-spacing:.07em; color:var(--ink-faint); font-weight:600}
+  .lab-card .lab-val{font-family:"Archivo",sans-serif; font-weight:800; font-size:24px; margin-top:3px}
+  .value-yes{color:var(--good)} .value-no{color:var(--ink-soft)}
+
+  /* explainer + feedback */
+  .two{display:grid; grid-template-columns:1fr 1fr; gap:16px}
+  @media(max-width:720px){.two{grid-template-columns:1fr}}
+  .panel{background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:18px; box-shadow:var(--shadow)}
+  .panel p{margin:0 0 10px; font-size:13.5px; color:var(--ink-soft)}
+  .panel p:last-child{margin-bottom:0}
+  textarea{width:100%; font:inherit; font-size:14px; padding:10px 12px; border:1px solid var(--line);
+    background:var(--surface-2); color:var(--ink); border-radius:9px; resize:vertical; min-height:64px}
+  .fb-row{display:flex; gap:10px; align-items:center; margin-top:10px; flex-wrap:wrap}
+  .stars{display:flex; gap:3px}
+  .star{cursor:pointer; font-size:20px; color:var(--line)}
+  .star.on{color:var(--warn)}
+  .saved{margin-top:12px; display:flex; flex-direction:column; gap:7px}
+  .saved .note{font-size:12.5px; background:var(--surface-2); border:1px solid var(--line); border-radius:8px; padding:8px 10px; color:var(--ink-soft)}
+  .saved .note b{color:var(--ink)}
+  footer{margin-top:34px; padding-top:16px; border-top:1px solid var(--line); font-size:12px; color:var(--ink-faint)}
+  a{color:var(--accent-ink)}
+  .toggle{cursor:pointer; border:1px solid var(--line); background:var(--surface); color:var(--ink-soft);
+    border-radius:8px; padding:5px 10px; font-size:12px; font-weight:600}
+  @media (prefers-reduced-motion: reduce){*{transition:none !important}}
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
+
+<header>
+  <div class="wrap head-inner">
+    <div class="brand">
+      <div class="crest">B</div>
+      <div>
+        <p class="kicker">BetPredictor · Dixon-Coles engine</p>
+        <h1>Draw or Over 2.5 — Today</h1>
+      </div>
+    </div>
+    <div class="datechip">
+      <div><b>Sat 5 Sep 2026</b></div>
+      <div>Premier League · Championship · League One</div>
+    </div>
+  </div>
+</header>
+
+<div class="rg"><div class="wrap"><p>⚠️ <b>Model estimates, not guarantees.</b> This market still misses roughly 1 in 4 times — it loses on 1-0, 2-0, 0-1, 0-2. Only stake what you can afford to lose. 18+ · <b>BeGambleAware.org</b> · GamCare 0808 8020 133.</p></div></div>
+
+<main class="wrap">
+  <div class="tiles" id="tiles"></div>
+
+  <div class="controls">
+    <div class="chips" id="leagueChips">
+      <button class="chip" data-lg="all" aria-pressed="true">All</button>
+      <button class="chip" data-lg="PL" aria-pressed="false">Premier League</button>
+      <button class="chip" data-lg="CH" aria-pressed="false">Championship</button>
+      <button class="chip" data-lg="L1" aria-pressed="false">League One</button>
+    </div>
+    <label class="slider">Min probability
+      <input type="range" id="thr" min="60" max="80" step="1" value="72">
+      <output id="thrOut">72%</output>
+    </label>
+  </div>
+
+  <div class="list" id="list"></div>
+
+  <h2>Match lab — try any pairing</h2>
+  <div class="lab">
+    <div class="lab-grid">
+      <div class="field"><label for="home">Home team</label><select id="home"></select></div>
+      <div class="field"><label for="away">Away team</label><select id="away"></select></div>
+      <div class="field"><label for="odds">Book odds (optional)</label><input type="number" id="odds" step="0.01" placeholder="1.30"></div>
+      <button class="go" id="calc">Predict</button>
+    </div>
+    <div class="lab-out" id="labOut"></div>
+  </div>
+
+  <div class="two">
+    <div>
+      <h2>How this market works</h2>
+      <div class="panel">
+        <p><b>“Draw or Over 2.5”</b> wins if the match is a draw <b>or</b> has 3+ goals. It loses on exactly four scorelines: <b>1-0, 2-0, 0-1, 0-2</b> — a decisive result with two or fewer goals.</p>
+        <p>So the model computes it exactly: <span class="num">P = 1 − P(1-0) − P(2-0) − P(0-1) − P(0-2)</span>, reading those cells off a Dixon-Coles bivariate-Poisson scoreline grid built from each side's expected goals.</p>
+        <p class="fversion">Fixture confidence reflects how well the fixture itself was verified (some lower-division matchups came from stitched search results). Probabilities are the live in-browser model.</p>
+      </div>
+    </div>
+    <div>
+      <h2>Your read</h2>
+      <div class="panel">
+        <p>Spotted something the model can't see — an injury, weather, a lineup? Note it. Saved on this device.</p>
+        <textarea id="fbText" placeholder="e.g. Man City resting players before midweek — fade the over"></textarea>
+        <div class="fb-row">
+          <div class="stars" id="stars" title="Your confidence">
+            <span class="star" data-v="1">★</span><span class="star" data-v="2">★</span><span class="star" data-v="3">★</span><span class="star" data-v="4">★</span><span class="star" data-v="5">★</span>
+          </div>
+          <button class="go" id="saveNote">Save note</button>
+        </div>
+        <div class="saved" id="saved"></div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    Built from the BetPredictor engine · scoreline model runs entirely in your browser · fixtures verified via public search on 5 Sep 2026.
+    Nothing here is financial or betting advice.
+  </footer>
+</main>
+
+<script>
+/* ---------- Dixon-Coles model (ported from the Python core) ---------- */
+const RHO=-0.08, MAXG=10, HOME_ADV=1.18;
+const LEAGUE_BASE={PL:1.35, CH:1.25, L1:1.25};
+const LEAGUE_NAME={PL:"Premier League", CH:"Championship", L1:"League One"};
+
+function factorial(n){let f=1; for(let i=2;i<=n;i++) f*=i; return f;}
+function pois(k,l){ if(l<=0) return k===0?1:0; return Math.exp(-l)*Math.pow(l,k)/factorial(k); }
+function tau(i,j,l,m){
+  if(i===0&&j===0) return 1-l*m*RHO;
+  if(i===0&&j===1) return 1+l*RHO;
+  if(i===1&&j===0) return 1+m*RHO;
+  if(i===1&&j===1) return 1-RHO;
+  return 1;
+}
+function matrix(hx,ax){
+  hx=Math.max(hx,1e-6); ax=Math.max(ax,1e-6);
+  const n=MAXG+1, hp=[],ap=[]; for(let i=0;i<n;i++){hp.push(pois(i,hx)); ap.push(pois(i,ax));}
+  const m=[]; let tot=0;
+  for(let i=0;i<n;i++){m.push([]); for(let j=0;j<n;j++){let p=Math.max(hp[i]*ap[j]*tau(i,j,hx,ax),0); m[i][j]=p; tot+=p;}}
+  for(let i=0;i<n;i++) for(let j=0;j<n;j++) m[i][j]/=tot;
+  return m;
+}
+function markets(hx,ax){
+  const m=matrix(hx,ax), n=m.length; let home=0,draw=0,away=0,over=0,btts=0;
+  for(let i=0;i<n;i++)for(let j=0;j<n;j++){const p=m[i][j];
+    if(i>j)home+=p; else if(i===j)draw+=p; else away+=p;
+    if(i+j>2)over+=p; if(i>0&&j>0)btts+=p;}
+  const combo=1-(m[1][0]+m[2][0]+m[0][1]+m[0][2]);
+  return {home,draw,away,over,btts,combo,cells:m};
+}
+/* team ratings: a=attack(>1 scores more), d=defence(lower=better) */
+const T={
+  // Premier League
+  "Manchester City":{a:1.55,d:0.62,lg:"PL"},"Coventry City":{a:0.82,d:1.22,lg:"PL"},
+  "Newcastle United":{a:1.18,d:0.88,lg:"PL"},"Bournemouth":{a:1.05,d:1.05,lg:"PL"},
+  "Brentford":{a:1.08,d:1.05,lg:"PL"},"Sunderland":{a:0.85,d:1.12,lg:"PL"},
+  "Brighton":{a:1.20,d:0.92,lg:"PL"},"Leeds United":{a:0.92,d:1.15,lg:"PL"},
+  "Fulham":{a:1.00,d:0.98,lg:"PL"},"Crystal Palace":{a:0.98,d:0.90,lg:"PL"},
+  "Nottingham Forest":{a:1.02,d:0.95,lg:"PL"},"Tottenham":{a:1.25,d:0.98,lg:"PL"},
+  "Hull City":{a:0.85,d:1.15,lg:"PL"},"Aston Villa":{a:1.22,d:0.90,lg:"PL"},
+  // Championship
+  "Sheffield United":{a:1.10,d:0.92,lg:"CH"},"Norwich City":{a:1.05,d:1.05,lg:"CH"},
+  "Burnley":{a:1.12,d:0.85,lg:"CH"},"Bristol City":{a:0.98,d:1.00,lg:"CH"},
+  "West Ham":{a:1.20,d:0.98,lg:"CH"},"Derby County":{a:0.90,d:1.08,lg:"CH"},
+  "West Brom":{a:1.05,d:0.95,lg:"CH"},"Watford":{a:1.00,d:1.05,lg:"CH"},
+  "QPR":{a:0.95,d:1.05,lg:"CH"},"Middlesbrough":{a:1.10,d:0.95,lg:"CH"},
+  "Portsmouth":{a:0.98,d:1.02,lg:"CH"},"Cardiff City":{a:0.95,d:1.05,lg:"CH"},
+  "Swansea City":{a:1.00,d:1.02,lg:"CH"},"Wrexham":{a:1.02,d:1.00,lg:"CH"},
+  "Stoke City":{a:0.98,d:0.98,lg:"CH"},"Charlton":{a:0.92,d:1.02,lg:"CH"},
+  "Preston":{a:0.90,d:0.95,lg:"CH"},"Blackburn Rovers":{a:1.00,d:1.02,lg:"CH"},
+  "Millwall":{a:0.95,d:0.90,lg:"CH"},"Bolton Wanderers":{a:1.00,d:1.05,lg:"CH"},
+  "Lincoln City":{a:0.90,d:1.05,lg:"CH"},"Southampton":{a:1.15,d:0.92,lg:"CH"},
+  // League One
+  "Leicester City":{a:1.30,d:0.85,lg:"L1"},"Oxford United":{a:0.92,d:1.08,lg:"L1"},
+  "Peterborough United":{a:1.15,d:1.02,lg:"L1"},"Sheffield Wednesday":{a:0.90,d:1.05,lg:"L1"},
+  "Huddersfield Town":{a:1.10,d:0.95,lg:"L1"},"Notts County":{a:0.95,d:1.10,lg:"L1"},
+  "Luton Town":{a:1.10,d:0.95,lg:"L1"},"Leyton Orient":{a:0.95,d:1.02,lg:"L1"},
+  "Barnsley":{a:1.05,d:1.00,lg:"L1"},"Stevenage":{a:0.88,d:0.98,lg:"L1"},
+  "Bradford City":{a:1.00,d:1.00,lg:"L1"},"Mansfield Town":{a:0.95,d:1.02,lg:"L1"},
+  "Doncaster Rovers":{a:1.00,d:1.02,lg:"L1"},"Plymouth Argyle":{a:0.98,d:1.05,lg:"L1"},
+  "Wigan Athletic":{a:0.98,d:1.02,lg:"L1"},"Stockport County":{a:1.05,d:0.98,lg:"L1"},
+  "Burton Albion":{a:0.95,d:1.02,lg:"L1"},"Cambridge United":{a:0.92,d:1.05,lg:"L1"}
+};
+function xg(home,away){
+  const h=T[home], a=T[away], base=LEAGUE_BASE[h.lg];
+  return [base*h.a*a.d*HOME_ADV, base*a.a*h.d];
+}
+/* today's verified fixtures (fc = fixture-verification confidence) */
+const FIXTURES=[
+  ["PL","Manchester City","Coventry City","high"],
+  ["PL","Brentford","Sunderland","high"],
+  ["PL","Newcastle United","Bournemouth","high"],
+  ["PL","Brighton","Leeds United","high"],
+  ["PL","Fulham","Crystal Palace","high"],
+  ["PL","Nottingham Forest","Tottenham","high"],
+  ["PL","Hull City","Aston Villa","med"],
+  ["CH","Sheffield United","Norwich City","high"],
+  ["CH","Burnley","Bristol City","high"],
+  ["CH","West Ham","Derby County","med"],
+  ["CH","West Brom","Watford","med"],
+  ["CH","QPR","Middlesbrough","med"],
+  ["CH","Portsmouth","Cardiff City","med"],
+  ["CH","Swansea City","Wrexham","med"],
+  ["CH","Stoke City","Charlton","low"],
+  ["CH","Preston","Blackburn Rovers","low"],
+  ["CH","Millwall","Bolton Wanderers","low"],
+  ["CH","Lincoln City","Southampton","low"],
+  ["L1","Leicester City","Oxford United","high"],
+  ["L1","Peterborough United","Sheffield Wednesday","high"],
+  ["L1","Huddersfield Town","Notts County","high"],
+  ["L1","Luton Town","Leyton Orient","high"],
+  ["L1","Barnsley","Stevenage","high"],
+  ["L1","Bradford City","Mansfield Town","high"],
+  ["L1","Doncaster Rovers","Plymouth Argyle","high"],
+  ["L1","Wigan Athletic","Stockport County","high"],
+  ["L1","Burton Albion","Cambridge United","high"]
+];
+
+/* compute predictions */
+const PREDS = FIXTURES.map(([lg,h,a,fc])=>{
+  const [hx,ax]=xg(h,a); const m=markets(hx,ax);
+  return {lg,h,a,fc,hx,ax,...m, total:hx+ax};
+}).sort((x,y)=>y.combo-x.combo);
+
+const pct=x=>Math.round(x*100)+"%";
+const pct1=x=>(x*100).toFixed(1)+"%";
+let curLg="all", thr=0.72;
+
+function confLabel(p){ return p>=0.735?"High":p>=0.70?"Medium":"Lean"; }
+
+function renderTiles(){
+  const shown=PREDS.filter(p=>curLg==="all"||p.lg===curLg);
+  const picks=shown.filter(p=>p.combo>=thr);
+  const avg=shown.reduce((s,p)=>s+p.combo,0)/(shown.length||1);
+  const top=shown[0];
+  document.getElementById("tiles").innerHTML=`
+    <div class="tile"><div class="lab">Fixtures</div><div class="val num">${shown.length}</div><div class="sub">${curLg==="all"?"across 3 leagues":LEAGUE_NAME[curLg]}</div></div>
+    <div class="tile"><div class="lab">Clear ${pct(thr)}</div><div class="val num" style="color:var(--accent)">${picks.length}</div><div class="sub">model's shortlist</div></div>
+    <div class="tile"><div class="lab">Avg probability</div><div class="val num">${pct1(avg)}</div><div class="sub">this market runs hot</div></div>
+    <div class="tile"><div class="lab">Top rated</div><div class="val" style="font-size:16px;line-height:1.25">${top?top.h+" v "+top.a:"—"}</div><div class="sub num">${top?pct1(top.combo):""}</div></div>`;
+}
+function renderList(){
+  const shown=PREDS.filter(p=>curLg==="all"||p.lg===curLg);
+  document.getElementById("list").innerHTML = shown.map((p,idx)=>{
+    const conf=confLabel(p.combo), pick=p.combo>=thr;
+    return `<div class="fx ${pick?'pick':''}" data-i="${idx}">
+      <div class="fx-row" role="button" tabindex="0" aria-expanded="false">
+        <div class="teams">
+          <div class="match">${p.h} <span style="color:var(--ink-faint);font-weight:400">v</span> ${p.a}</div>
+          <div class="meta"><span class="lgtag">${LEAGUE_NAME[p.lg]}</span> · xG ${p.hx.toFixed(2)}–${p.ax.toFixed(2)} · fixture ${p.fc}</div>
+        </div>
+        <div class="barwrap"><div class="bar"><i style="width:${(p.combo*100).toFixed(1)}%"></i></div></div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <div class="prob"><span class="p num">${pct1(p.combo)}</span><span class="conf ${conf}">${conf}</span></div>
+          <span class="caret">▶</span>
+        </div>
+      </div>
+      <div class="detail"><div class="detail-inner">
+        <div class="mk">
+          <div class="r"><span>Over 2.5 goals</span><b class="num">${pct1(p.over)}</b></div>
+          <div class="r"><span>Draw</span><b class="num">${pct1(p.draw)}</b></div>
+          <div class="r"><span>Both teams score</span><b class="num">${pct1(p.btts)}</b></div>
+          <div class="r"><span>Home / Away win</span><b class="num">${pct(p.home)} / ${pct(p.away)}</b></div>
+          <div class="r"><span>Expected goals</span><b class="num">${p.total.toFixed(2)}</b></div>
+        </div>
+        <div class="lose">This bet loses only on these four scorelines:
+          <div style="margin-top:6px">
+            <span class="scoreline num">1-0 ${pct1(p.cells[1][0])}</span>
+            <span class="scoreline num">2-0 ${pct1(p.cells[2][0])}</span>
+            <span class="scoreline num">0-1 ${pct1(p.cells[0][1])}</span>
+            <span class="scoreline num">0-2 ${pct1(p.cells[0][2])}</span>
+          </div>
+          <div style="margin-top:8px">Combined miss chance <b class="num">${pct1(1-p.combo)}</b>.</div>
+        </div>
+      </div></div>
+    </div>`;
+  }).join("");
+  // wire expand
+  document.querySelectorAll("#list .fx").forEach(el=>{
+    const row=el.querySelector(".fx-row");
+    const toggle=()=>{ const open=el.classList.toggle("open"); row.setAttribute("aria-expanded",open);};
+    row.addEventListener("click",toggle);
+    row.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){e.preventDefault();toggle();}});
+  });
+}
+function renderAll(){ renderTiles(); renderList(); }
+
+document.getElementById("leagueChips").addEventListener("click",e=>{
+  const b=e.target.closest(".chip"); if(!b) return;
+  curLg=b.dataset.lg;
+  document.querySelectorAll("#leagueChips .chip").forEach(c=>c.setAttribute("aria-pressed", c===b));
+  renderAll();
+});
+const thrEl=document.getElementById("thr"), thrOut=document.getElementById("thrOut");
+thrEl.addEventListener("input",()=>{ thr=thrEl.value/100; thrOut.textContent=thrEl.value+"%"; renderAll(); });
+
+/* match lab */
+const teams=Object.keys(T).sort();
+const homeSel=document.getElementById("home"), awaySel=document.getElementById("away");
+teams.forEach(t=>{ homeSel.add(new Option(t,t)); awaySel.add(new Option(t,t)); });
+homeSel.value="Manchester City"; awaySel.value="Coventry City";
+document.getElementById("calc").addEventListener("click",()=>{
+  const h=homeSel.value, a=awaySel.value;
+  if(h===a){ document.getElementById("labOut").className="lab-out show";
+    document.getElementById("labOut").innerHTML=`<div class="lab-card">Pick two different teams.</div>`; return; }
+  if(T[h].lg!==T[a].lg){ /* allow cross-league but note base uses home league */ }
+  const [hx,ax]=xg(h,a); const m=markets(hx,ax);
+  const oddsRaw=parseFloat(document.getElementById("odds").value);
+  let valueCard="";
+  if(!isNaN(oddsRaw)&&oddsRaw>1){
+    const edge=m.combo*oddsRaw-1, fair=1/m.combo;
+    valueCard=`<div class="lab-card"><div class="lab-lab">Edge vs ${oddsRaw.toFixed(2)}</div>
+      <div class="lab-val ${edge>0?'value-yes':'value-no'} num">${(edge*100>=0?'+':'')}${(edge*100).toFixed(1)}%</div>
+      <div class="lab-lab" style="margin-top:4px">fair odds ${fair.toFixed(2)} ${edge>0?'· value':''}</div></div>`;
+  }
+  document.getElementById("labOut").className="lab-out show";
+  document.getElementById("labOut").innerHTML=`
+    <div class="lab-card"><div class="lab-lab">Draw or Over 2.5</div><div class="lab-val num" style="color:var(--accent)">${pct1(m.combo)}</div><div class="lab-lab" style="margin-top:4px">xG ${hx.toFixed(2)}–${ax.toFixed(2)}</div></div>
+    <div class="lab-card"><div class="lab-lab">Over 2.5</div><div class="lab-val num">${pct1(m.over)}</div></div>
+    <div class="lab-card"><div class="lab-lab">Draw</div><div class="lab-val num">${pct1(m.draw)}</div></div>
+    ${valueCard}`;
+});
+
+/* feedback (localStorage) */
+let rating=0;
+document.getElementById("stars").addEventListener("click",e=>{
+  const s=e.target.closest(".star"); if(!s) return; rating=+s.dataset.v;
+  document.querySelectorAll("#stars .star").forEach(x=>x.classList.toggle("on",+x.dataset.v<=rating));
+});
+function loadNotes(){
+  let notes=[]; try{ notes=JSON.parse(localStorage.getItem("bp_notes")||"[]"); }catch(e){}
+  document.getElementById("saved").innerHTML = notes.slice(-5).reverse().map(n=>
+    `<div class="note"><b>${'★'.repeat(n.r)}${'☆'.repeat(5-n.r)}</b> ${escapeHtml(n.t)}</div>`).join("");
+}
+function escapeHtml(s){return s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+document.getElementById("saveNote").addEventListener("click",()=>{
+  const t=document.getElementById("fbText").value.trim(); if(!t) return;
+  let notes=[]; try{ notes=JSON.parse(localStorage.getItem("bp_notes")||"[]"); }catch(e){}
+  notes.push({t, r:rating||3, ts:Date.now()});
+  try{ localStorage.setItem("bp_notes", JSON.stringify(notes)); }catch(e){}
+  document.getElementById("fbText").value=""; rating=0;
+  document.querySelectorAll("#stars .star").forEach(x=>x.classList.remove("on"));
+  loadNotes();
+});
+
+renderAll(); loadNotes();
+</script>
