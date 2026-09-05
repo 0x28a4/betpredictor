@@ -24,6 +24,7 @@ LEAGUE_BASE_GOALS: Dict[str, float] = {
     "premier-league": 1.40,
     "championship": 1.30,
     "league-one": 1.30,
+    "league-two": 1.30,
 }
 
 # team -> attributes. ``league`` links a team to its base scoring rate.

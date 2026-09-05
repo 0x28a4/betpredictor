@@ -26,6 +26,7 @@ LEAGUES = {
     "premier-league": {"name": "Premier League", "fd_code": "PL", "espn_slug": "eng.1", "tier": 1},
     "championship": {"name": "EFL Championship", "fd_code": "ELC", "espn_slug": "eng.2", "tier": 2},
     "league-one": {"name": "EFL League One", "fd_code": None, "espn_slug": "eng.3", "tier": 3},
+    "league-two": {"name": "EFL League Two", "fd_code": None, "espn_slug": "eng.4", "tier": 4},
 }
 
 
