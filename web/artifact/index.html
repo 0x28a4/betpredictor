@@ -188,6 +188,7 @@
       <button class="chip" data-lg="PL" aria-pressed="false">Premier League</button>
       <button class="chip" data-lg="CH" aria-pressed="false">Championship</button>
       <button class="chip" data-lg="L1" aria-pressed="false">League One</button>
+      <button class="chip" data-lg="L2" aria-pressed="false">League Two</button>
     </div>
     <label class="slider">Min probability
       <input type="range" id="thr" min="60" max="80" step="1" value="72">
@@ -242,8 +243,8 @@
 <script>
 /* ---------- Dixon-Coles model (ported from the Python core) ---------- */
 const RHO=-0.08, MAXG=10, HOME_ADV=1.18;
-const LEAGUE_BASE={PL:1.35, CH:1.25, L1:1.25};
-const LEAGUE_NAME={PL:"Premier League", CH:"Championship", L1:"League One"};
+const LEAGUE_BASE={PL:1.35, CH:1.25, L1:1.25, L2:1.25};
+const LEAGUE_NAME={PL:"Premier League", CH:"Championship", L1:"League One", L2:"League Two"};
 
 function factorial(n){let f=1; for(let i=2;i<=n;i++) f*=i; return f;}
 function pois(k,l){ if(l<=0) return k===0?1:0; return Math.exp(-l)*Math.pow(l,k)/factorial(k); }
@@ -301,7 +302,11 @@ const T={
   "Bradford City":{a:1.00,d:1.00,lg:"L1"},"Mansfield Town":{a:0.95,d:1.02,lg:"L1"},
   "Doncaster Rovers":{a:1.00,d:1.02,lg:"L1"},"Plymouth Argyle":{a:0.98,d:1.05,lg:"L1"},
   "Wigan Athletic":{a:0.98,d:1.02,lg:"L1"},"Stockport County":{a:1.05,d:0.98,lg:"L1"},
-  "Burton Albion":{a:0.95,d:1.02,lg:"L1"},"Cambridge United":{a:0.92,d:1.05,lg:"L1"}
+  "Burton Albion":{a:0.95,d:1.02,lg:"L1"},"Cambridge United":{a:0.92,d:1.05,lg:"L1"},
+  // League Two (uncalibrated — near-even priors, so numbers sit at market baseline)
+  "Walsall":{a:1.05,d:1.00,lg:"L2"},"MK Dons":{a:1.05,d:1.00,lg:"L2"},
+  "Bromley":{a:1.00,d:1.02,lg:"L2"},"Gillingham":{a:0.98,d:1.02,lg:"L2"},
+  "Cheltenham Town":{a:0.92,d:1.05,lg:"L2"},"Grimsby Town":{a:1.00,d:1.02,lg:"L2"}
 };
 function xg(home,away){
   const h=T[home], a=T[away], base=LEAGUE_BASE[h.lg];
@@ -335,7 +340,10 @@ const FIXTURES=[
   ["L1","Bradford City","Mansfield Town","high"],
   ["L1","Doncaster Rovers","Plymouth Argyle","high"],
   ["L1","Wigan Athletic","Stockport County","high"],
-  ["L1","Burton Albion","Cambridge United","high"]
+  ["L1","Burton Albion","Cambridge United","high"],
+  ["L2","Walsall","MK Dons","high"],
+  ["L2","Bromley","Gillingham","high"],
+  ["L2","Cheltenham Town","Grimsby Town","high"]
 ];
 
 /* compute predictions */
@@ -369,7 +377,7 @@ function renderList(){
       <div class="fx-row" role="button" tabindex="0" aria-expanded="false">
         <div class="teams">
           <div class="match">${p.h} <span style="color:var(--ink-faint);font-weight:400">v</span> ${p.a}</div>
-          <div class="meta"><span class="lgtag">${LEAGUE_NAME[p.lg]}</span> · xG ${p.hx.toFixed(2)}–${p.ax.toFixed(2)} · fixture ${p.fc}</div>
+          <div class="meta"><span class="lgtag">${LEAGUE_NAME[p.lg]}</span> · xG ${p.hx.toFixed(2)}–${p.ax.toFixed(2)} · fixture ${p.fc}${p.lg==='L2'?' · <span style="color:var(--warn)">model: baseline</span>':''}</div>
         </div>
         <div class="barwrap"><div class="bar"><i style="width:${(p.combo*100).toFixed(1)}%"></i></div></div>
         <div style="display:flex;align-items:center;gap:12px">
